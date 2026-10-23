@@ -146,6 +146,8 @@
   }
 
   function renderGuide() {
+    const nowTitle = $('nowTitle');
+    if (nowTitle) nowTitle.textContent = mode === 'live' ? data.live.title : (current ? data.items[current.index].title : 'Эфир скоро начнётся');
     if (!guideEl) return;
     guideEl.innerHTML = '';
     const add = (t, title, isNow) => {
