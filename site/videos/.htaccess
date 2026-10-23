@@ -1,0 +1,8 @@
+Options -Indexes
+# В папке с видео никакой PHP не исполняется
+<FilesMatch "\.(php|phtml|php\d|phar|pl|py|cgi|sh)$">
+    Require all denied
+</FilesMatch>
+AddType video/mp4 .mp4 .m4v
+AddType video/webm .webm
+AddType video/quicktime .mov
