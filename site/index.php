@@ -54,7 +54,7 @@ $embed = isset($_GET['embed']);
   <aside class="chat" id="chat">
     <ul class="chat-list" id="chatList"></ul>
     <form class="chat-form" id="chatForm" autocomplete="off">
-      <input id="chatInput" maxlength="300" placeholder="Войди через Google, чтобы писать" disabled>
+      <input id="chatInput" maxlength="300" placeholder="Поле ввода" readonly>
     </form>
   </aside>
   <?php endif; ?>

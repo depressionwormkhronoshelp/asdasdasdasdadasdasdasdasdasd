@@ -22,7 +22,12 @@ let user = null, lastSent = 0;
 
 async function login() {
   try { await signInWithPopup(auth, new GoogleAuthProvider()); }
-  catch (e) { if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') sys('Не получилось войти: ' + e.code); }
+  catch (e) {
+    if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') return;
+    sys(e.code === 'auth/unauthorized-domain'
+      ? 'Вход пока выключен: в Firebase не добавлен домен ' + location.hostname
+      : 'Не получилось войти: ' + e.code);
+  }
 }
 
 btn.hidden = false;
@@ -38,10 +43,10 @@ onAuthStateChanged(auth, (u) => {
   if (u) {
     if (safeUrl(u.photoURL)) { const img = document.createElement('img'); img.src = u.photoURL; img.alt = ''; img.referrerPolicy = 'no-referrer'; btn.append(img); }
     btn.append(document.createTextNode(u.displayName || 'Профиль'));
-    input.disabled = false; input.placeholder = 'Поле ввода';
+    input.readOnly = false;
   } else {
     btn.textContent = 'Войти через Google';
-    input.disabled = true; input.placeholder = 'Войди через Google, чтобы писать';
+    input.readOnly = true;
   }
 });
 
@@ -93,4 +98,4 @@ function render(docs) {
 
 onSnapshot(query(messages, orderBy('createdAt'), limitToLast(100)),
   (snap) => render(snap.docs),
-  (err) => sys('Чат пока не настроен (' + err.code + ')'));
+  (err) => sys(err.code === 'permission-denied' ? 'Чат пока закрыт: в Firebase не опубликованы правила' : 'Чат не отвечает (' + err.code + ')'));
