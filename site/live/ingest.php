@@ -1,10 +1,10 @@
 <?php
 // Приём кусков прямого эфира с компа стримера (скрипт push.ps1).
-// Ключ задаётся в config.php → live_push_key. Пустой ключ = приём выключен.
+// Ключ: из админ-панели (data/secrets.json) или config.php → live_push_key. Пустой = приём выключен.
 require __DIR__ . '/../lib.php';
 header('Content-Type: text/plain; charset=utf-8');
 
-$key = (string)($CONFIG['live_push_key'] ?? '');
+$key = xtv_push_key();
 if ($key === '' || !hash_equals($key, (string)($_POST['key'] ?? ''))) { http_response_code(403); exit('bad key'); }
 
 $f = $_FILES['file'] ?? null;

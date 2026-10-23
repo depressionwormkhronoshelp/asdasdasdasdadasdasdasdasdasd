@@ -49,6 +49,7 @@ button{font:inherit}
 .chat-list{flex:1;list-style:none;margin:0;padding:0 .4vw;overflow-y:auto;display:flex;flex-direction:column;gap:clamp(8px,.9vw,16px);scrollbar-width:thin;scrollbar-color:#5a4848 transparent}
 .chat-list::before{content:"";margin-top:auto}
 .chat-list li{display:flex;gap:clamp(6px,.5vw,10px);align-items:center}
+.chat-list li>div{min-width:0}
 .chat-list .ava{flex:none;width:clamp(24px,2.5vw,44px);height:clamp(24px,2.5vw,44px);border-radius:50%;background:#d9d9d9;object-fit:cover}
 .chat-list .nick{font:400 clamp(9px,.75vw,13px)/1.3 Unbounded,sans-serif;color:#fff;opacity:.5}
 .chat-list .text{font:400 clamp(10px,.8vw,14px)/1.35 Unbounded,sans-serif;color:#fff;overflow-wrap:anywhere}
@@ -56,6 +57,33 @@ button{font:inherit}
 .chat-form{margin-top:clamp(8px,.8vw,14px)}
 .chat-form input{width:100%;border:0;border-radius:999px;background:var(--field);color:#111;padding:clamp(9px,1.1vw,18px) clamp(14px,1.4vw,24px);font:400 clamp(11px,.8vw,14px) Unbounded,sans-serif;outline:none}
 .chat-form input::placeholder{color:#9a9a9a}
+
+/* админка */
+.top-right{display:flex;gap:8px;align-items:center}
+.admin-panel{position:fixed;z-index:50;top:clamp(56px,4.6vw,84px);right:clamp(12px,1.6vw,28px);width:min(360px,calc(100vw - 24px));max-height:calc(100vh - 100px);overflow:auto;background:#241c1c;border:1px solid #4a3b3b;border-radius:22px;padding:16px 18px;box-shadow:0 20px 60px rgba(0,0,0,.6);font-size:13px}
+.admin-panel[hidden]{display:none}
+.ap-head{display:flex;justify-content:space-between;align-items:center;font:400 15px Unbounded,sans-serif;margin-bottom:6px}
+.ap-x{background:none;border:0;color:#bbb;font-size:16px;cursor:pointer}
+.admin-panel section{border-top:1px solid #3a2e2e;padding:12px 0 4px}
+.admin-panel h3{margin:0 0 8px;font:400 12px Unbounded,sans-serif;color:#bba9a9}
+.ap-check{display:flex;gap:8px;align-items:center;margin-bottom:8px;cursor:pointer}
+.ap-check input{accent-color:var(--accent)}
+.ap-input{width:100%;border:0;border-radius:12px;background:var(--field);color:#111;padding:9px 12px;font:inherit;margin-bottom:8px}
+.ap-row{display:flex;gap:8px;flex-wrap:wrap}
+.ap-btn{display:inline-block;border:0;border-radius:999px;background:var(--card2);color:#fff;padding:8px 14px;font:inherit;cursor:pointer;text-decoration:none}
+.ap-btn:hover{background:#5a4848}
+.ap-btn.danger{background:#7a2630}.ap-btn.danger:hover{background:#962e3a}
+.ap-hint{margin:0 0 8px;color:#bba9a9}
+.ap-key{display:block;margin:0 0 8px;padding:8px 10px;border-radius:10px;background:#000;color:#7dff9a;font-size:12px;word-break:break-all;user-select:all}
+.ap-key[hidden]{display:none}
+.ap-bans{list-style:none;margin:0;padding:0}
+.ap-bans li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0}
+.ap-bans button{border:0;background:none;color:#ff8a95;cursor:pointer;font:inherit}
+.ap-msg{margin:8px 0 0;color:#bba9a9;min-height:1em}
+.chat-list .mod{margin-left:auto;display:none;gap:4px;flex:none}
+.chat-list li:hover .mod{display:flex}
+.chat-list .mod button{border:0;border-radius:8px;background:rgba(0,0,0,.35);color:#fff;font-size:11px;padding:3px 6px;cursor:pointer}
+@media (hover:none){.chat-list .mod{display:flex}}
 
 body.embed .layout{display:block;padding:0;height:100vh}
 body.embed .stage{padding:0;height:100%}

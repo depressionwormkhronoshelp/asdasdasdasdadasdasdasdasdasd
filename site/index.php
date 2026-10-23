@@ -17,8 +17,39 @@ $embed = isset($_GET['embed']);
 <?php if (!$embed): ?>
 <header class="top">
   <div class="logo"><?= h($CONFIG['channel_name']) ?></div>
-  <button class="pill" id="authBtn" hidden>Войти через Google</button>
+  <div class="top-right">
+    <button class="pill" id="authBtn" hidden>Войти через Google</button>
+    <button class="pill" id="adminBtn" hidden>Админ</button>
+  </div>
 </header>
+
+<div class="admin-panel" id="adminPanel" hidden>
+  <div class="ap-head"><b>Админ-панель</b><button class="ap-x" id="apClose" title="Закрыть">✕</button></div>
+  <section>
+    <h3>Прямой эфир</h3>
+    <label class="ap-check"><input type="checkbox" id="apLive"> Эфир включён</label>
+    <input class="ap-input" id="apTitle" maxlength="200" placeholder="Название передачи">
+    <button class="ap-btn" id="apSaveLive">Сохранить</button>
+  </section>
+  <section>
+    <h3>Ключ для push.ps1</h3>
+    <p class="ap-hint" id="apKeyHint"></p>
+    <code class="ap-key" id="apKey" hidden></code>
+    <div class="ap-row">
+      <button class="ap-btn" id="apShowKey">Показать</button>
+      <button class="ap-btn danger" id="apNewKey">Новый ключ</button>
+    </div>
+  </section>
+  <section>
+    <h3>Баны в чате</h3>
+    <ul class="ap-bans" id="apBans"></ul>
+  </section>
+  <section>
+    <h3>Видео и сетка</h3>
+    <a class="ap-btn" href="admin.php" target="_blank">Открыть админку видео ↗</a>
+  </section>
+  <p class="ap-msg" id="apMsg"></p>
+</div>
 <?php endif; ?>
 
 <main class="layout">

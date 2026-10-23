@@ -46,3 +46,45 @@ function xtv_video_files(): array {
 }
 
 function h($s): string { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+
+// ---------- Ключ эфира и админы через Google ----------
+const XTV_SECRETS = __DIR__ . '/data/secrets.json';
+const XTV_FIREBASE_PROJECT = 'xtvv-b5221';
+
+// Ключ, сгенерированный в админ-панели, важнее ключа из config.php
+function xtv_push_key(): string {
+    global $CONFIG;
+    $s = is_file(XTV_SECRETS) ? json_decode((string)file_get_contents(XTV_SECRETS), true) : null;
+    if (is_array($s) && !empty($s['live_push_key'])) return (string)$s['live_push_key'];
+    return (string)($CONFIG['live_push_key'] ?? '');
+}
+
+function xtv_set_push_key(string $key): bool {
+    $s = is_file(XTV_SECRETS) ? (json_decode((string)file_get_contents(XTV_SECRETS), true) ?: []) : [];
+    $s['live_push_key'] = $key;
+    $tmp = XTV_SECRETS . '.tmp';
+    return file_put_contents($tmp, json_encode($s), LOCK_EX) !== false && rename($tmp, XTV_SECRETS);
+}
+
+// Возвращает почту, если токен Firebase принадлежит админу, иначе null.
+// Подпись токена проверяет сам Firestore: документ admins/<почта> по правилам
+// отдаётся только владельцу этой почты.
+function xtv_google_admin(string $token): ?string {
+    $parts = explode('.', $token);
+    if (count($parts) !== 3) return null;
+    $payload = json_decode((string)base64_decode(strtr($parts[1], '-_', '+/')), true);
+    $email = strtolower((string)($payload['email'] ?? ''));
+    if ($email === '' || ($payload['aud'] ?? '') !== XTV_FIREBASE_PROJECT) return null;
+    $url = 'https://firestore.googleapis.com/v1/projects/' . XTV_FIREBASE_PROJECT
+         . '/databases/(default)/documents/admins/' . rawurlencode($email);
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_HTTPHEADER     => ['Authorization: Bearer ' . $token],
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 8,
+    ]);
+    curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    return $code === 200 ? $email : null;
+}
