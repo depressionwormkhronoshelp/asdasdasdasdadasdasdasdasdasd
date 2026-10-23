@@ -14,18 +14,18 @@ button{font:inherit}
 .stage{min-width:0;display:flex;flex-direction:column;padding-top:clamp(12px,3vw,60px)}
 
 /* экран эфира */
-.screen{position:relative;aspect-ratio:2/1;max-height:calc(100vh - 230px);background:var(--card);border-radius:clamp(28px,9.6vw,180px)/clamp(28px,9.6vw,180px);overflow:hidden;user-select:none}
-.screen video{width:100%;height:100%;display:block;object-fit:contain;background:transparent}
-.bug{position:absolute;top:12%;left:9%;display:flex;gap:6px;align-items:center;background:rgba(0,0,0,.5);padding:4px 10px;border-radius:999px;font:600 11px Unbounded,sans-serif;letter-spacing:.06em}
+.screen{--r:clamp(24px,6vw,110px);position:relative;aspect-ratio:16/9;width:min(100%,calc((100vh - 340px) * 16 / 9));min-width:min(100%,420px);background:var(--card);border-radius:var(--r);clip-path:inset(0 round var(--r));overflow:hidden;isolation:isolate;user-select:none}
+.screen video{width:100%;height:100%;display:block;object-fit:cover;background:var(--card)}
+.bug{position:absolute;top:9%;left:7%;display:flex;gap:6px;align-items:center;background:rgba(0,0,0,.5);padding:4px 10px;border-radius:999px;font:600 11px Unbounded,sans-serif;letter-spacing:.06em}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:blink 1.4s infinite}
 @keyframes blink{50%{opacity:.25}}
 .osd{position:absolute;left:34px;right:34px;bottom:62px;font-size:14px;text-shadow:0 1px 3px #000;opacity:0;transition:opacity .3s}
-.screen:hover .osd,.osd.show{opacity:1}
+.osd{display:none}
 .msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px 12%;background:var(--card);font:400 clamp(15px,2.1vw,36px)/1.2 Unbounded,sans-serif}
 .msg[hidden]{display:none}
-.unmute,.golive{position:absolute;top:12%;right:9%;border:0;border-radius:999px;padding:8px 16px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}
+.unmute,.golive{position:absolute;top:9%;right:7%;border:0;border-radius:999px;padding:8px 16px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}
 .golive{top:auto;bottom:62px}
-.controls{position:absolute;left:0;right:0;bottom:6px;display:flex;gap:8px;align-items:center;padding:10px 12% 6%;background:linear-gradient(transparent,rgba(0,0,0,.7));opacity:0;transition:opacity .3s}
+.controls{position:absolute;left:0;right:0;bottom:6px;display:flex;gap:8px;align-items:center;padding:10px 8% 5%;background:linear-gradient(transparent,rgba(0,0,0,.7));opacity:0;transition:opacity .3s}
 .screen:hover .controls,.screen:focus-within .controls{opacity:1}
 .controls button{background:none;border:0;color:#fff;font-size:18px;cursor:pointer;padding:4px}
 .controls .spacer{flex:1}
@@ -65,7 +65,7 @@ body.embed .screen{border-radius:0;height:100%;max-height:none;aspect-ratio:auto
   .top{padding:14px 14px 0}
   .layout{display:flex;flex-direction:column;height:calc(100svh - 54px);min-height:560px;gap:18px;padding:12px 10px 16px}
   .stage{padding:0;flex:none}
-  .screen{aspect-ratio:2.2/1;border-radius:26px;max-height:none}
+  .screen{aspect-ratio:16/9;--r:26px;width:100%;min-width:0}
   .info{display:none}
   .chat{flex:1;border-radius:26px;padding:14px 18px 14px}
   .chat-list .ava{width:30px;height:30px}
