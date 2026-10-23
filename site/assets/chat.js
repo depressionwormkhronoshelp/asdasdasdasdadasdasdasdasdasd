@@ -25,7 +25,7 @@ async function login() {
   try { await signInWithPopup(auth, new GoogleAuthProvider()); }
   catch (e) {
     if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') return;
-    sys(e.code === 'auth/unauthorized-domain'
+    err(e.code === 'auth/unauthorized-domain'
       ? 'Вход пока выключен: в Firebase не добавлен домен ' + location.hostname
       : 'Не получилось войти: ' + e.code);
   }
@@ -55,10 +55,11 @@ onAuthStateChanged(auth, (u) => {
 form.onsubmit = async (e) => {
   e.preventDefault();
   const text = input.value.trim().slice(0, 300);
-  if (!user || !text) return;
-  if (chatSettings.locked && !isAdmin) return sys('Чат закрыт админом');
+  if (!user) { login(); return; }
+  if (!text) return;
+  if (chatSettings.locked && !isAdmin) return err('Чат закрыт админом');
   const wait = Math.max(2, isAdmin ? 0 : chatSettings.slow) * 1000 - (Date.now() - lastSent);
-  if (wait > 0) return sys('Медленный режим: подожди ещё ' + Math.ceil(wait / 1000) + ' сек');
+  if (wait > 0) return err('Медленный режим: подожди ещё ' + Math.ceil(wait / 1000) + ' сек');
   lastSent = Date.now();
   input.value = '';
   // сообщение и отметка «когда писал» уходят вместе: так правила Firestore проверяют медленный режим
@@ -74,11 +75,12 @@ form.onsubmit = async (e) => {
   batch.set(doc(messages), msg);
   batch.set(doc(db, 'last', user.uid), { at: serverTimestamp() });
   try { await batch.commit(); }
-  catch (err) {
+  catch (e2) {
     input.value = text;
-    sys(err.code !== 'permission-denied' ? 'Сообщение не отправилось: ' + err.code
+    console.error('XTV chat send failed', e2);
+    err(e2.code !== 'permission-denied' ? 'Сообщение не отправилось: ' + e2.code
       : chatSettings.locked ? 'Чат закрыт админом'
-      : chatSettings.slow ? 'Медленный режим: подожди немного' : 'Ты забанен в чате');
+      : chatSettings.slow ? 'Медленный режим: подожди немного' : 'Firebase не принял сообщение: ты в бане или правила не те');
   }
 };
 
@@ -91,6 +93,13 @@ onSnapshot(doc(db, 'settings', 'chat'), (d) => {
 }, () => {});
 
 function safeUrl(u) { return typeof u === 'string' && u.startsWith('https://'); }
+
+// Ошибки отправки показываем под полем ввода, чтобы их не стирало обновление чата
+let errTimer = null;
+function err(text) {
+  const el = $('chatErr'); el.textContent = text; el.hidden = false;
+  clearTimeout(errTimer); errTimer = setTimeout(() => { el.hidden = true; }, 8000);
+}
 
 function sys(text) {
   const li = document.createElement('li');

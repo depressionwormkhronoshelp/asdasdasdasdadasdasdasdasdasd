@@ -58,6 +58,7 @@ button{font:inherit}
 .chat-form{margin-top:clamp(8px,.8vw,14px)}
 .chat-form input{width:100%;border:0;border-radius:999px;background:var(--field);color:#111;padding:clamp(9px,1.1vw,18px) clamp(14px,1.4vw,24px);font:400 clamp(11px,.8vw,14px) Unbounded,sans-serif;outline:none}
 .chat-form input::placeholder{color:#9a9a9a}
+.chat-err{margin:8px 6px 0;color:#ff9aa4;font-size:12px}
 
 /* админка */
 .top-right{display:flex;gap:8px;align-items:center}

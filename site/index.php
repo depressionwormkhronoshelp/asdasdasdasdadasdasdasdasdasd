@@ -2,6 +2,8 @@
 require __DIR__ . '/lib.php';
 // ?embed=1 — только плеер, без чата и сетки (для вставки в iframe)
 $embed = isset($_GET['embed']);
+// ?v=время файла — браузер сразу берёт новую версию после обновления сайта
+$v = fn($f) => $f . '?v=' . @filemtime(__DIR__ . '/' . $f);
 ?><!doctype html>
 <html lang="ru">
 <head>
@@ -11,7 +13,7 @@ $embed = isset($_GET['embed']);
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;600&family=Manrope:wght@400;600;700&display=swap">
-<link rel="stylesheet" href="assets/tv.css">
+<link rel="stylesheet" href="<?= $v('assets/tv.css') ?>">
 </head>
 <body class="<?= $embed ? 'embed' : '' ?>">
 <?php if (!$embed): ?>
@@ -113,11 +115,12 @@ $embed = isset($_GET['embed']);
     <form class="chat-form" id="chatForm" autocomplete="off">
       <input id="chatInput" maxlength="300" placeholder="Поле ввода" readonly>
     </form>
+    <p class="chat-err" id="chatErr" hidden></p>
   </aside>
   <?php endif; ?>
 </main>
-<script src="assets/hls.min.js"></script>
-<script src="assets/tv.js"></script>
-<?php if (!$embed): ?><script type="module" src="assets/chat.js"></script><?php endif; ?>
+<script src="<?= $v('assets/hls.min.js') ?>"></script>
+<script src="<?= $v('assets/tv.js') ?>"></script>
+<?php if (!$embed): ?><script type="module" src="<?= $v('assets/chat.js') ?>"></script><?php endif; ?>
 </body>
 </html>
