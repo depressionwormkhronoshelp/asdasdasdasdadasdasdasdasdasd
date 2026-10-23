@@ -88,3 +88,23 @@ function xtv_google_admin(string $token): ?string {
     curl_close($ch);
     return $code === 200 ? $email : null;
 }
+
+// ---------- Счётчик зрителей ----------
+// Зритель = браузер, который спрашивал api.php последние 35 сек (храним только хэш IP+браузера).
+const XTV_VIEWERS = __DIR__ . '/data/viewers.json';
+
+function xtv_viewers(bool $touch): int {
+    $fp = @fopen(XTV_VIEWERS, 'c+');
+    if (!$fp) return 0;
+    flock($fp, LOCK_EX);
+    $v = json_decode((string)stream_get_contents($fp), true) ?: [];
+    $now = time();
+    foreach ($v as $k => $t) if ($now - $t > 35) unset($v[$k]);
+    if ($touch) {
+        $id = substr(hash('sha256', ($_SERVER['REMOTE_ADDR'] ?? '') . '|' . ($_SERVER['HTTP_USER_AGENT'] ?? '')), 0, 16);
+        $v[$id] = $now;
+        ftruncate($fp, 0); rewind($fp); fwrite($fp, json_encode($v));
+    }
+    flock($fp, LOCK_UN); fclose($fp);
+    return count($v);
+}

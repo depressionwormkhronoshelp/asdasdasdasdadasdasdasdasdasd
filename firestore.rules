@@ -9,6 +9,9 @@ service cloud.firestore {
     function isBanned() {
       return exists(/databases/$(database)/documents/bans/$(request.auth.uid));
     }
+    function chatPath() { return /databases/$(database)/documents/settings/chat; }
+    function chatLocked() { return exists(chatPath()) && get(chatPath()).data.locked == true; }
+    function slowSec() { return exists(chatPath()) ? get(chatPath()).data.slow : 0; }
 
     match /admins/{email} {
       allow read: if request.auth != null && request.auth.token.email == email;
@@ -23,11 +26,34 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Настройки чата: закрыт, медленный режим, закреп
+    match /settings/{id} {
+      allow read: if true;
+      allow write: if isAdmin() && id == 'chat'
+        && request.resource.data.keys().hasOnly(['locked', 'slow', 'pinned'])
+        && request.resource.data.locked is bool
+        && request.resource.data.slow is int && request.resource.data.slow >= 0 && request.resource.data.slow <= 300
+        && request.resource.data.pinned is string && request.resource.data.pinned.size() <= 200;
+    }
+
+    // Когда пользователь писал последний раз (для медленного режима)
+    match /last/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['at']) && request.resource.data.at == request.time;
+      allow update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['at']) && request.resource.data.at == request.time
+        && (isAdmin() || resource.data.at + duration.value(slowSec(), 's') <= request.time);
+    }
+
     // Чат: читать могут все, писать вошедшие через Google, не забаненные, от своего имени
     match /messages/{id} {
       allow read: if true;
       allow create: if request.auth != null && !isBanned()
-        && request.resource.data.keys().hasOnly(['uid', 'name', 'photo', 'text', 'createdAt'])
+        && (!chatLocked() || isAdmin())
+        && getAfter(/databases/$(database)/documents/last/$(request.auth.uid)).data.at == request.time
+        && request.resource.data.keys().hasOnly(['uid', 'name', 'photo', 'text', 'createdAt', 'admin'])
+        && (!('admin' in request.resource.data) || (request.resource.data.admin == true && isAdmin()))
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.name is string && request.resource.data.name.size() <= 40
         && request.resource.data.photo is string && request.resource.data.photo.size() <= 500

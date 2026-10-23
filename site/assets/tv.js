@@ -26,6 +26,8 @@
     const changed = key !== dataKey;
     data = json; dataKey = key;
     document.title = json.channel + ' — эфир';
+    const vEl = $('viewers');
+    if (vEl && json.viewers) vEl.textContent = '· ' + json.viewers + ' 👁';
     return changed;
   }
 

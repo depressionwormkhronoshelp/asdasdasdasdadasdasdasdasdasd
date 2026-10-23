@@ -20,7 +20,15 @@ $action = (string)($_POST['action'] ?? '');
 
 if ($action === 'state') {
     $key = xtv_push_key();
-    out(['admin' => $admin, 'live' => $ch['live'], 'key_hint' => $key === '' ? '' : '…' . substr($key, -4)]);
+    $m3u8 = __DIR__ . '/live/stream/index.m3u8';
+    out([
+        'admin'      => $admin,
+        'live'       => $ch['live'],
+        'key_hint'   => $key === '' ? '' : '…' . substr($key, -4),
+        'viewers'    => xtv_viewers(false),
+        'stream_age' => is_file($m3u8) ? time() - filemtime($m3u8) : null,
+        'items'      => count($ch['items']),
+    ]);
 }
 
 if ($action === 'save_live') {
@@ -29,6 +37,19 @@ if ($action === 'save_live') {
     if ($ch['live']['url'] === '') $ch['live']['url'] = $base . 'live/playlist.php';
     if (!xtv_save($ch)) out(['error' => 'Не получилось записать data/channel.json'], 500);
     out(['ok' => true, 'live' => $ch['live']]);
+}
+
+// Сетка записей начнётся с первого ролика прямо сейчас
+if ($action === 'restart_schedule') {
+    $ch['epoch'] = time();
+    if (!xtv_save($ch)) out(['error' => 'Не получилось записать data/channel.json'], 500);
+    out(['ok' => true]);
+}
+
+// Сбросить зависший эфир: удалить залитые куски, зрители сразу вернутся к записям
+if ($action === 'stop_stream') {
+    foreach (glob(__DIR__ . '/live/stream/{index.m3u8,seg_*.ts}', GLOB_BRACE) ?: [] as $f) @unlink($f);
+    out(['ok' => true]);
 }
 
 if ($action === 'show_key') out(['key' => xtv_push_key()]);

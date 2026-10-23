@@ -2,7 +2,7 @@
 // Эти ключи не секретные: они всегда видны в браузере, защиту дают правила Firestore.
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, collection, doc, addDoc, setDoc, getDoc, deleteDoc, serverTimestamp, query, orderBy, limitToLast, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc, writeBatch, serverTimestamp, query, where, orderBy, limit, limitToLast, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const app = initializeApp({
   apiKey: 'AIzaSyB7G0trSrDXhKcLV_6P2iI66jqXVmqN54Q',
@@ -19,6 +19,7 @@ const messages = collection(db, 'messages');
 const $ = (id) => document.getElementById(id);
 const btn = $('authBtn'), list = $('chatList'), form = $('chatForm'), input = $('chatInput');
 let user = null, lastSent = 0, isAdmin = false, lastDocs = [], unsubBans = null;
+let chatSettings = { locked: false, slow: 0, pinned: '' };
 
 async function login() {
   try { await signInWithPopup(auth, new GoogleAuthProvider()); }
@@ -55,22 +56,39 @@ form.onsubmit = async (e) => {
   e.preventDefault();
   const text = input.value.trim().slice(0, 300);
   if (!user || !text) return;
-  if (Date.now() - lastSent < 2000) return;          // без флуда
+  if (chatSettings.locked && !isAdmin) return sys('Чат закрыт админом');
+  const wait = Math.max(2, isAdmin ? 0 : chatSettings.slow) * 1000 - (Date.now() - lastSent);
+  if (wait > 0) return sys('Медленный режим: подожди ещё ' + Math.ceil(wait / 1000) + ' сек');
   lastSent = Date.now();
   input.value = '';
-  try {
-    await addDoc(messages, {
-      uid: user.uid,
-      name: (user.displayName || 'Зритель').slice(0, 40),
-      photo: safeUrl(user.photoURL) ? user.photoURL.slice(0, 500) : '',
-      text,
-      createdAt: serverTimestamp(),
-    });
-  } catch (err) {
+  // сообщение и отметка «когда писал» уходят вместе: так правила Firestore проверяют медленный режим
+  const batch = writeBatch(db);
+  const msg = {
+    uid: user.uid,
+    name: (user.displayName || 'Зритель').slice(0, 40),
+    photo: safeUrl(user.photoURL) ? user.photoURL.slice(0, 500) : '',
+    text,
+    createdAt: serverTimestamp(),
+  };
+  if (isAdmin) msg.admin = true;
+  batch.set(doc(messages), msg);
+  batch.set(doc(db, 'last', user.uid), { at: serverTimestamp() });
+  try { await batch.commit(); }
+  catch (err) {
     input.value = text;
-    sys(err.code === 'permission-denied' ? 'Ты забанен в чате' : 'Сообщение не отправилось: ' + err.code);
+    sys(err.code !== 'permission-denied' ? 'Сообщение не отправилось: ' + err.code
+      : chatSettings.locked ? 'Чат закрыт админом'
+      : chatSettings.slow ? 'Медленный режим: подожди немного' : 'Ты забанен в чате');
   }
 };
+
+onSnapshot(doc(db, 'settings', 'chat'), (d) => {
+  chatSettings = Object.assign({ locked: false, slow: 0, pinned: '' }, d.exists() ? d.data() : {});
+  const pin = $('chatPin');
+  pin.textContent = chatSettings.pinned || '';
+  pin.hidden = !chatSettings.pinned;
+  input.placeholder = chatSettings.locked ? 'Чат закрыт' : chatSettings.slow ? 'Поле ввода · раз в ' + chatSettings.slow + ' сек' : 'Поле ввода';
+}, () => {});
 
 function safeUrl(u) { return typeof u === 'string' && u.startsWith('https://'); }
 
@@ -92,7 +110,10 @@ function render(docs) {
     ava.className = 'ava';
     if (safeUrl(m.photo)) { ava.src = m.photo; ava.alt = ''; ava.referrerPolicy = 'no-referrer'; ava.loading = 'lazy'; }
     const body = document.createElement('div');
-    const nick = document.createElement('div'); nick.className = 'nick'; nick.textContent = m.name || 'Зритель';
+    const nick = document.createElement('div'); nick.className = 'nick';
+    const name = document.createElement('span'); name.className = 'name'; name.textContent = m.name || 'Зритель';
+    nick.append(name);
+    if (m.admin === true) { const b = document.createElement('span'); b.className = 'badge'; b.textContent = 'админ'; nick.append(b); }
     const text = document.createElement('div'); text.className = 'text'; text.textContent = m.text || '';
     body.append(nick, text);
     li.append(ava, body);
@@ -144,6 +165,13 @@ adminBtn.onclick = async () => {
     $('apLive').checked = !!st.live.enabled;
     $('apTitle').value = st.live.title || '';
     $('apKeyHint').textContent = st.key_hint ? 'Сейчас ключ заканчивается на ' + st.key_hint : 'Ключ не задан, приём эфира выключен';
+    const age = st.stream_age;
+    $('apStatus').textContent = 'Зрителей: ' + st.viewers + ' · Эфир с компа: '
+      + (age === null ? 'не идёт' : age <= 30 ? 'идёт ✅' : 'молчит ' + fmtAge(age))
+      + ' · Роликов в сетке: ' + st.items;
+    $('apLocked').checked = !!chatSettings.locked;
+    $('apSlow').value = String(chatSettings.slow || 0);
+    $('apPinned').value = chatSettings.pinned || '';
     apMsg('');
   } catch (e) { apMsg('Ошибка: ' + e.message); }
 };
@@ -181,7 +209,8 @@ function modButtons(id, m) {
     ban.onclick = () => {
       if (!confirm('Забанить ' + (m.name || 'пользователя') + ' в чате?')) return;
       setDoc(doc(db, 'bans', m.uid), { name: (m.name || '').slice(0, 40), at: serverTimestamp() })
-        .then(() => sys((m.name || 'Пользователь') + ' забанен'))
+        .then(() => deleteAll(query(messages, where('uid', '==', m.uid), limit(400))))
+        .then((n) => sys((m.name || 'Пользователь') + ' забанен, удалено сообщений: ' + n))
         .catch((e) => sys('Не получилось забанить: ' + e.code));
     };
     box.append(ban);
@@ -204,3 +233,46 @@ function watchBans() {
     });
   }, (e) => { ul.textContent = 'Не читается: ' + e.code; });
 }
+
+function fmtAge(s) { return s < 120 ? s + ' сек' : s < 7200 ? Math.round(s / 60) + ' мин' : Math.round(s / 3600) + ' ч'; }
+
+$('apStopStream').onclick = async () => {
+  if (!confirm('Сбросить эфир? Залитые куски удалятся, зрители вернутся к записям. Если push.ps1 ещё работает, эфир снова появится.')) return;
+  try { await api('stop_stream'); apMsg('Эфир сброшен.'); } catch (e) { apMsg('Ошибка: ' + e.message); }
+};
+
+$('apRestart').onclick = async () => {
+  if (!confirm('Запустить сетку записей с первого ролика прямо сейчас?')) return;
+  try { await api('restart_schedule'); apMsg('Сетка начата заново.'); } catch (e) { apMsg('Ошибка: ' + e.message); }
+};
+
+$('apSaveChat').onclick = async () => {
+  try {
+    await setDoc(doc(db, 'settings', 'chat'), {
+      locked: $('apLocked').checked,
+      slow: parseInt($('apSlow').value, 10) || 0,
+      pinned: $('apPinned').value.trim().slice(0, 200),
+    });
+    apMsg('Настройки чата сохранены.');
+  } catch (e) { apMsg('Ошибка: ' + e.code); }
+};
+
+async function deleteAll(q) {
+  let n = 0;
+  for (;;) {
+    const snap = await getDocs(q);
+    if (snap.empty) return n;
+    const batch = writeBatch(db);
+    snap.docs.forEach((d) => batch.delete(d.ref));
+    await batch.commit();
+    n += snap.size;
+    if (snap.size < 400) return n;
+  }
+}
+
+$('apClearChat').onclick = async () => {
+  if (!confirm('Удалить ВСЕ сообщения в чате? Это не отменить.')) return;
+  apMsg('Удаляю…');
+  try { apMsg('Удалено сообщений: ' + await deleteAll(query(messages, limit(400)))); }
+  catch (e) { apMsg('Ошибка: ' + e.code); }
+};

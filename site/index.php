@@ -26,10 +26,32 @@ $embed = isset($_GET['embed']);
 <div class="admin-panel" id="adminPanel" hidden>
   <div class="ap-head"><b>Админ-панель</b><button class="ap-x" id="apClose" title="Закрыть">✕</button></div>
   <section>
+    <h3>Сейчас</h3>
+    <p class="ap-hint" id="apStatus">…</p>
+  </section>
+  <section>
     <h3>Прямой эфир</h3>
     <label class="ap-check"><input type="checkbox" id="apLive"> Эфир включён</label>
     <input class="ap-input" id="apTitle" maxlength="200" placeholder="Название передачи">
-    <button class="ap-btn" id="apSaveLive">Сохранить</button>
+    <div class="ap-row">
+      <button class="ap-btn" id="apSaveLive">Сохранить</button>
+      <button class="ap-btn danger" id="apStopStream">Сбросить эфир</button>
+    </div>
+  </section>
+  <section>
+    <h3>Чат</h3>
+    <label class="ap-check"><input type="checkbox" id="apLocked"> Чат закрыт (писать могут только админы)</label>
+    <label class="ap-check">Медленный режим
+      <select class="ap-select" id="apSlow">
+        <option value="0">выкл</option><option value="5">5 сек</option><option value="10">10 сек</option>
+        <option value="30">30 сек</option><option value="60">1 мин</option><option value="300">5 мин</option>
+      </select>
+    </label>
+    <input class="ap-input" id="apPinned" maxlength="200" placeholder="Закреп сверху чата (пусто = нет)">
+    <div class="ap-row">
+      <button class="ap-btn" id="apSaveChat">Сохранить</button>
+      <button class="ap-btn danger" id="apClearChat">Очистить чат</button>
+    </div>
   </section>
   <section>
     <h3>Ключ для push.ps1</h3>
@@ -46,7 +68,10 @@ $embed = isset($_GET['embed']);
   </section>
   <section>
     <h3>Видео и сетка</h3>
-    <a class="ap-btn" href="admin.php" target="_blank">Открыть админку видео ↗</a>
+    <div class="ap-row">
+      <button class="ap-btn" id="apRestart">Сетку с начала</button>
+      <a class="ap-btn" href="admin.php" target="_blank">Админка видео ↗</a>
+    </div>
   </section>
   <p class="ap-msg" id="apMsg"></p>
 </div>
@@ -56,7 +81,7 @@ $embed = isset($_GET['embed']);
   <div class="stage">
     <div class="screen" id="screen">
       <video id="video" playsinline muted preload="auto"></video>
-      <div class="bug"><span class="dot"></span><span id="badge">ЭФИР</span></div>
+      <div class="bug"><span class="dot"></span><span id="badge">ЭФИР</span><span id="viewers"></span></div>
       <div class="osd" id="osd"></div>
       <div class="msg" id="msg">Подключаемся к эфиру…</div>
       <button class="unmute" id="unmute" hidden>🔊 Включить звук</button>
@@ -83,6 +108,7 @@ $embed = isset($_GET['embed']);
 
   <?php if (!$embed): ?>
   <aside class="chat" id="chat">
+    <div class="chat-pin" id="chatPin" hidden></div>
     <ul class="chat-list" id="chatList"></ul>
     <form class="chat-form" id="chatForm" autocomplete="off">
       <input id="chatInput" maxlength="300" placeholder="Поле ввода" readonly>

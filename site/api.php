@@ -25,4 +25,5 @@ echo json_encode([
         'duration' => (float)$i['duration'],
     ], $items),
     'live'    => $live ? ['url' => $live['url'], 'title' => $live['title']] : null,
+    'viewers' => xtv_viewers(true),
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
