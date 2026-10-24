@@ -1,0 +1,30 @@
+name: Sync to Hugging Face
+
+# Копирует сайт в Space на Hugging Face. Нужны секрет HF_TOKEN (токен с правом write)
+# и переменная HF_SPACE (например vasya/xtv) в Settings → Secrets and variables → Actions.
+on:
+  push:
+    branches: [main]
+    paths: ['web/**', 'Dockerfile', '.github/workflows/hf-sync.yml']
+  workflow_dispatch:
+
+jobs:
+  sync:
+    if: vars.HF_SPACE != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Push to Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE: ${{ vars.HF_SPACE }}
+        run: |
+          mkdir hf && cp -r Dockerfile web hf/
+          printf -- '---\ntitle: XTV\nemoji: 📺\ncolorFrom: red\ncolorTo: gray\nsdk: docker\napp_port: 7860\npinned: false\n---\n' > hf/README.md
+          cd hf
+          git init -q -b main
+          git lfs install --local
+          git lfs track "*.mp4" "*.webm" "*.mov" "*.m4v"
+          git add -A
+          git -c user.name=xtv-bot -c user.email=xtv-bot@users.noreply.github.com commit -qm "Sync from GitHub $GITHUB_SHA"
+          git push --force "https://user:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE}" main

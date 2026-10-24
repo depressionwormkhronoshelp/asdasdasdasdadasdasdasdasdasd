@@ -26,6 +26,14 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Настройки канала: эфир, записи, начало сетки
+    match /settings/channel {
+      allow read: if true;
+      allow write: if isAdmin()
+        && request.resource.data.keys().hasOnly(['live', 'items', 'epoch'])
+        && (!('items' in request.resource.data) || request.resource.data.items.size() <= 200);
+    }
+
     // Настройки чата: закрыт, медленный режим, закреп
     match /settings/{id} {
       allow read: if true;

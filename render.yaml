@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: xtv
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    autoDeploy: true
+    envVars:
+      - key: LIVE_PUSH_KEY
+        sync: false
